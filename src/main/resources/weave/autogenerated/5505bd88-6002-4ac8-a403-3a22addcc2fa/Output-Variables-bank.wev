@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_5505bd88_6002_4ac8_a403_3a22addcc2fa_Output_Variables_bank = Any
+

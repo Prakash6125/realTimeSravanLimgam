@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+	<flow name="project-sapi-api-main">
+        <http:listener path="/api/*" config-ref="project-sapi-api-httpListenerConfig">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="project-sapi-api-config"/>
+        
+    </flow>
+    <flow name="put:\unblock:application\json:project-sapi-api-config">
+        <logger level="INFO" doc:name="Start Logger" doc:id="4cfe1229-d39e-4b8e-b054-1e9a95a12d69" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Check Balence&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;Start&quot;,&#10;	&quot;State&quot;:&quot;Check balence application started&quot;&#10;}]" />
+		<flow-ref doc:name="Flow Reference to call input initilizing flow" doc:id="fe19b36a-6304-48b4-8a43-6fae5603f144" name="inputInitilizationFlowForUnBlock" />
+		<flow-ref doc:name="Flow Reference to call Unblock-Implementation" doc:id="222ae278-fef9-4128-9c34-8bacf2c815fe" name="Account-Unblock-Implementation-Flow" />
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "Account "++ vars.inputPayload.accountNum ++"is unBlocked"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="End Logger" doc:id="f3825a37-dc84-49cb-b6ed-40af3082764f" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Check Balence&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;Start&quot;,&#10;	&quot;State&quot;:&quot;Check balence application ended&quot;&#10;}]" />
+    </flow>
+    <flow name="post:\checkBalence:application\json:project-sapi-api-config" doc:id="4eb19e09-64f1-4e6e-a5d4-086e6ff59dc8">
+        <logger level="INFO" doc:name="Start Logger" doc:id="abafb88d-0931-4123-b89f-ff5361f0917c" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Check Balence&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;Start&quot;,&#10;	&quot;State&quot;:&quot;Check balence application started&quot;&#10;}]" />
+		<ee:transform doc:name="Transform Message" doc:id="b0ea237b-63fd-4e09-9e74-e0659ac9729b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="flow" ><![CDATA[%dw 2.0
+output application/json
+---
+flow.name]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference to call input initilizing flow" doc:id="07ac688c-79f9-4261-a7ee-c5e279d76b4f" name="inputInitilizationCheckBalence_Flow" />
+		<flow-ref doc:name="Flow Reference to call CheckBalence-Implementation" doc:id="80ec3e59-e7e2-40a5-bd8b-09f01def8391" name="WithDraw-CheckBalence-CommanCode-FlowFlow" />
+		<logger level="INFO" doc:name="End Logger" doc:id="260beb01-f772-4bf0-b6c9-7805f359a473" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Check Balence&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;Start&quot;,&#10;	&quot;State&quot;:&quot;Check balence application ended&quot;&#10;}]" />
+    </flow>
+    <flow name="post:\createAccount:application\json:project-sapi-api-config">
+		<logger level="INFO" doc:name="Start Logger" doc:id="a7e1c798-4da9-416c-a84f-e3684250510d" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Create Customer&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;Start&quot;&#10;}]"/>
+		<ee:transform doc:name="Transform Message" doc:id="b69ce8bd-5106-4fa9-82cf-9d4fe17a7d6b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="flow"><![CDATA[%dw 2.0
+output application/json
+---
+flow.name]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference To Store inputDetails" doc:id="f95af6da-7b70-411d-99eb-09e59eb36b08" name="inputInitilizationInsert_Flow"/>
+		<flow-ref doc:name="Flow Reference To call CreateAccount Implementation" doc:id="a5ee8903-8d47-41ff-ae49-153a19a98e6e" name="Create-Account-Implementation-FlowFlow" targetValue="#[vars.inputPayload]"/>
+		<logger level="INFO" doc:name="End Logger" doc:id="e71d5d3d-5511-4150-ab5d-562c22c3f91c" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Create Customer&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;END&quot;&#10;}]" />
+    </flow>
+    <flow name="post:\withDraw:application\json:project-sapi-api-config">
+		<logger level="INFO" doc:name="Start Logger" doc:id="22b739cc-e220-4c40-b399-2b81dd7d474f" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Create Customer&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;Start&quot;&#10;}]" />
+		<ee:transform doc:name="Transform Message" doc:id="cc5c911e-408c-43f4-b908-1a9032764a0f">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="flow" ><![CDATA[%dw 2.0
+output application/json
+---
+flow.name]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference To Store inputDetails" doc:id="dfb0f745-eebe-4eb2-b0d2-41726f08b434" name="inputInitilizationWithDrawFlow" />
+		<flow-ref doc:name="Flow Reference" doc:id="9e18df9b-a32b-4887-bd6d-b3cb29c30258" name="WithDraw-CheckBalence-CommanCode-FlowFlow"/>
+		<logger level="INFO" doc:name="End Logger" doc:id="e734e000-3eab-4267-bc7a-93392cc476b6" message="#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	transactionId: vars.headers.'x-cms-transactionId',&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: &quot;Create Customer&quot;,&#10;	Category:&quot;Customer&quot;,&#10;	OriginatingApplication: &quot;System API&quot;,&#10;	DesinationApplication: &quot;Database&quot;,&#10;	CustomerId: &quot;NA&quot;,&#10;	txnState:&quot;END&quot;&#10;}]" />
+    </flow>
+</mule>

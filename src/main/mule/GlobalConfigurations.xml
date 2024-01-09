@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:twilio="http://www.mulesoft.org/schema/mule/twilio"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/twilio http://www.mulesoft.org/schema/mule/twilio/current/mule-twilio.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<http:listener-config name="project-sapi-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="project-sapi-api-config" api="project-sapi-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<configuration doc:name="Configuration" doc:id="341d97f3-f73c-4cd3-ac7f-1f661a06a262" defaultErrorHandler-ref="Error_Handler" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="f70db050-ed0c-4822-abe2-33367210482b" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" />
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="665bfe75-59cc-4e06-bdf2-ba6dbc942f11" file="local.yaml" />
+	<twilio:config name="Twilio_Connector_Config" doc:name="Twilio Connector Config" doc:id="1b09b224-7e79-4693-8e43-06ff318e391c" >
+		<twilio:account-sid-auth-token-connection username="${tw.sid}" password="${tw.token}"/>
+	</twilio:config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="a89b3005-6394-431f-8b26-558ed6d88ff0" >
+		<email:smtp-connection host="smtp.gmail.com" port="587" user="govtbank24hours@gmail.com" password="bqfzppkjycsdgijo" >
+			<email:properties >
+				<email:property key="mail.smtp.starttls.enable" value="true" />
+			</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	
+</mule>

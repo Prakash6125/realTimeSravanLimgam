@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="With-Draw-Implimentation-FlowFlow" doc:id="d399b735-c51b-49ce-a222-ecfdaf3a8cf1" >
+		<choice doc:name="Choice" doc:id="a1f05cd1-5479-4830-b465-d5a73d14b73a" >
+			<when expression="#[vars.userData.totalBalance[0] &gt;= vars.inputPayload.amountToBeWithdraw]">
+				<db:update doc:name="Update" doc:id="20acbb28-3d95-4e21-ab19-4dea91f05159" config-ref="Database_Config">
+					<db:sql ><![CDATA[update BHARATHI_DB.BANK_TRANSACTIONS set totalBalance = :bal where custAccNum = :custAccNum]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	bal: vars.userData.totalBalance[0] - vars.inputPayload.amountToBeWithdraw,
+	custAccNum: vars.inputPayload.accountNum
+}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="3b2ce312-0504-4958-ab98-e8391f84988a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "Message":"Amount "++ vars.inputPayload.amountToBeWithdraw ++"is debited. Your total balence is" ++ (vars.userData.totalBalance[0] - vars.inputPayload.amountToBeWithdraw)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="54e52fd5-ced6-40c6-a24d-7d6ad2662c3a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Insufficient Funds"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

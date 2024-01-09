@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_d399b735_c51b_49ce_a222_ecfdaf3a8cf1_Output_Variables_mail = String | Null
+

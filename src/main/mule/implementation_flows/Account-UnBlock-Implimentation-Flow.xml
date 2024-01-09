@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="Account-Unblock-Implementation-Flow" doc:id="c382770e-8424-4c92-b50d-a1046c38b08a" >
+		<db:select doc:name="Select" doc:id="ba934bf6-cded-42bf-a039-80ce4fb52fd4" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from BHARATHI_DB.BANK_TRANSACTIONS where custAccNum=:custAccNum and bankName=:bankName]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	custAccNum:payload.accountNum,
+	bankName:payload.bank
+}]]]></db:input-parameters>
+		</db:select>
+		<set-variable value="#[payload.mailId[0]]" doc:name="Set Variable" doc:id="79a10f9d-67e7-46af-8c18-aea0038f2f6e" variableName="mail"/>
+		<choice doc:name="Choice" doc:id="5092a0e2-7340-4387-9d5a-871e3412b576" >
+			<when expression="#[sizeOf(payload)&gt;0]">
+				<choice doc:name="Choice" doc:id="4ddf6526-107d-4d3e-bd3c-61b6b7e754d0" >
+					<when expression="#[vars.inputPayload.user == 'admin' and vars.inputPayload.password =='admin']">
+						<db:update doc:name="Update" doc:id="36241cbf-4fad-43b8-bddc-fd56326310f9" config-ref="Database_Config">
+			<db:sql><![CDATA[update BHARATHI_DB.BANK_TRANSACTIONS set wrongPin=:wrongPin where accountStatus=:accountStatus]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	wrongPin: 0,
+	accountStatus: "Active"
+}]]]></db:input-parameters>
+		</db:update>
+						<ee:transform doc:name="Transform Message" doc:id="d8ac2ff0-e35e-4e2a-88e6-2b806746c712">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"Dear Customer......" ++
+"\nCongratulations! You have successfully unBlocked your bank account" ++
+"\nAccount Number: " ++ (vars.inputPayload.accountNum default "") ++
+"\nBank: " ++ (vars.bank default "") ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+						<email:send doc:name="Send" doc:id="a2416dee-f1c7-482d-8493-812cb19aa119" fromAddress="govtbank24hours@gmail.com" subject='#["Confirmation message"]' config-ref="Email_SMTP">
+							<email:to-addresses >
+								<email:to-address value="#[vars.mail]" />
+							</email:to-addresses>
+						</email:send>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="38377ae4-4887-43f5-afba-fee14d0f4126" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"You Enterd User " ++ vars.inputPayload.user ++ " and password " ++ vars.inputPayload.password ++ " does't matching please check once"]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="21a16ac4-c9af-4927-842c-5a70581c09a3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Account " ++ vars.inputPayload.accountNum ++ " does not exist . Enter Valid Details"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

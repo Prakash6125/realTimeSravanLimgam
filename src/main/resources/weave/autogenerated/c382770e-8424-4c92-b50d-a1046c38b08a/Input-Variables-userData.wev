@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_c382770e_8424_4c92_b50d_a1046c38b08a_Input_Variables_userData = Array<{|  pk: Number,   custName: String,   custAccNum: String,   atmPin: String,   bankName: String,   accountType: String,   ifscCode: String,   branchName: String,   totalBalance: Number,   transactionTimeStamp: String,   accountStatus: String,   wrongPin?: Number,   mailId: String,   phoneNumber: String|}>
+

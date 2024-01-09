@@ -1,0 +1,2 @@
+select * from BHARATHI_DB.Bank_Transactions(custName,custAccNum,atmPin,bankName,accountType,ifscCode,branchName,totalBalence,transactionTimeStamp,accountStatus,wrongPin,mailId,phoneNumber)
+(:custName,:custAccNum,:atmPin,:bankName,:accountType,:ifscCode,:branchName,:totalBalence,:transactionTimeStamp,:accountStatus,:wrongPin,:mailId,:phoneNumber)

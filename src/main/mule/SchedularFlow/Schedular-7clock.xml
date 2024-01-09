@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+    xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+    xmlns:db="http://www.mulesoft.org/schema/mule/db"
+    xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+                        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+
+    <!-- Your flow that will be triggered daily at 7:00 AM -->
+    <flow name="DailyFlow">
+
+        <!-- Scheduler component with a fixed frequency of 24 hours -->
+
+        <!-- Use MEL to store and retrieve the last execution time -->
+
+        <!-- Add your business logic here -->
+        <!-- For example, log a message with the last execution time -->
+
+        <!-- Add more components or connectors for your business logic -->
+        <!-- For example, you can make HTTP calls, process data, etc. -->
+		<scheduler doc:name="Scheduler" doc:id="7c71aaf8-5cd0-40ab-b175-99f8edd0ccde" >
+			<scheduling-strategy >
+				<cron expression="0 0 7 * * ?" timeZone="IST" />
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Logger" doc:id="c9f04202-12d9-4aae-807d-61cd06c6da13" message="Schedule Job Started"/>
+		<db:select doc:name="Select" doc:id="063fd117-8c67-4b86-829b-9c0efe2ca6d9" config-ref="Database_Config">
+			<db:sql ><![CDATA[select custAccNum,totalBalance,mailId from BHARATHI_DB.BANK_TRANSACTIONS]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="774f1903-926b-453e-81c7-9b330235cb57" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<try doc:name="Try" doc:id="c3130517-7046-4794-b409-b7c173a02a32" >
+			<foreach doc:name="For Each" doc:id="a2587147-3bea-46df-ac71-ca9cecad3a83" collection="#[payload]">
+			<set-variable value="#[payload.mailId]" doc:name="Set Variable" doc:id="a8329927-479e-4a25-ad0a-9b44db7eb0a4" variableName="mail" />
+			<ee:transform doc:name="Transform Message" doc:id="788d63fb-cea4-4ff4-b52a-fbe710d341cc">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"your total balance in your bank account is " ++ payload.totalBalance]]></ee:set-payload>
+				</ee:message>
+				<ee:variables>
+				</ee:variables>
+			</ee:transform>
+			<email:send doc:name="Send" doc:id="5b621d24-5fd7-41a9-820e-b73eb8e8711a" config-ref="Email_SMTP" subject=" Todays Total Balance!" fromAddress="govtbank24hours@gmail.com">
+			<email:to-addresses>
+					<email:to-address value="#[vars.mail]" />
+				</email:to-addresses>
+		</email:send>
+		</foreach>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="43bd2ff2-3cc4-4cce-9362-29203d8754c1" >
+					<logger level="INFO" doc:name="Logger" doc:id="2731ff01-3c7e-42e3-98c7-dc1577a7e9e4" message='#["mail not sent for this id " ++ payload]'/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+    
+</flow>
+</mule>

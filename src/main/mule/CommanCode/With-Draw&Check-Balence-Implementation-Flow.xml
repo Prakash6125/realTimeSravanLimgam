@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="WithDraw-CheckBalence-CommanCode-FlowFlow" doc:id="0f892d92-46d3-4764-96a3-e10ccfbad9b5" >
+		<db:select doc:name="Select" doc:id="1ab9c7e0-ee22-4b04-a394-124ee61d4e85" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from bharathi_db.Bank_Transactions where custAccNum=:custAccNum and bankName=:bankName]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	custAccNum: vars.inputPayload.accountNum,
+	bankName: vars.bank
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="23287ae5-a58b-4409-97d8-78e2b1606f86" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload reduce ((item, accumulator) -> 
+item)]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="wrongPin" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.wrongPin]]></ee:set-variable>
+				<ee:set-variable variableName="userData" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="c2ce6395-5329-4a04-888e-1da8c4a8c681" >
+			<when expression="#[sizeOf(payload)&gt;0]">
+				<choice doc:name="Choice" doc:id="8b3c7ea9-6fc4-4346-8ce0-234cea9e8022" >
+					<when expression="#[payload.accountStatus == 'Active']">
+						<choice doc:name="Choice" doc:id="63da3798-6368-4155-bdd2-4ae24cdbee83" >
+							<when expression="#[payload.atmPin == vars.inputPayload.atmPin]">
+								<choice doc:name="Choice" doc:id="bec3a954-6510-4024-b190-786093300c24" >
+									<when expression='#[vars.flow == "post:\\withDraw:application\\json:project-sapi-api-config"]'>
+										<flow-ref doc:name="F R to WithDraw-Implementation Flow" doc:id="d63a3ab9-38b3-405c-be27-4255e116a1ca" name="With-Draw-Implimentation-FlowFlow" />
+									</when>
+									<otherwise >
+										<flow-ref doc:name="F R to Check-Balence-Implementation-FlowFlow1" doc:id="d6753ca4-6ab2-40ac-adb3-54b24e244b6a" name="Check-Balence-Implementation-FlowFlow1" />
+									</otherwise>
+								</choice>
+							</when>
+							<otherwise >
+								<set-variable value="#[payload.wrongPin + 1]" doc:name="Set Variable to store wrongPin" doc:id="81a02b81-40c4-4b46-9100-0312f04aa082" variableName="wrongPin"/>
+								<set-variable value="#[payload.mailId]" doc:name="Set Variable1" doc:id="c82ee74e-2478-4a4f-87c3-f978ac8e7c02" variableName="mail" />
+								<choice doc:name="Choice" doc:id="c7619775-75b9-4d4a-854d-eebd6684b4e1">
+									<when expression="#[vars.wrongPin &gt; 3]">
+										<db:update doc:name="Update" doc:id="9e7cc9bf-4f87-4cd3-a41f-4855695a3833" config-ref="Database_Config" >
+											<db:sql ><![CDATA[update BHARATHI_DB.BANK_TRANSACTIONS set accountStatus=:status where custAccNum=:custAccNum]]></db:sql>
+											<db:input-parameters ><![CDATA[#[{
+	status: "Blocked",
+	custAccNum: payload.custAccNum
+}]]]></db:input-parameters>
+										</db:update>
+										<ee:transform doc:name="Transform Message" doc:id="100a7e58-834d-4cfc-b8d4-9181fd03fb92" >
+											<ee:message >
+												<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+"Your Bank Account " ++ vars.inputPayload.accountNum ++ " as been Blocked Due to Multiple WrongPin attempts.... --Please Contact Your Branch"]]></ee:set-payload>
+											</ee:message>
+										</ee:transform>
+										<logger level="INFO" doc:name="Logger" doc:id="74334735-3834-432a-9e08-b15dc698dcfa" message="before sending email to user"/>
+										<email:send doc:name="Send" doc:id="9885eb05-3bd4-4d0f-bea5-7f69f23f9727" fromAddress="govtbank24hours@gmail.com" subject='#["Warning Message From Bank"]' config-ref="Email_SMTP">
+											<email:to-addresses >
+												<email:to-address value="#[vars.mail]" />
+											</email:to-addresses>
+										</email:send>
+										<logger level="INFO" doc:name="Logger" doc:id="122285e8-c86f-4502-88dd-03a695ae8091" message="after sending email to user"/>
+									</when>
+									<otherwise >
+										<db:update doc:name="Update" doc:id="e162aced-7c2e-41bb-b4dc-3a052cb5ed5a" config-ref="Database_Config">
+									<db:sql><![CDATA[update BHARATHI_DB.BANK_TRANSACTIONS set wrongPin=:attempts where custAccNum=:custAccNum]]></db:sql>
+									<db:input-parameters><![CDATA[#[{
+	attempts: vars.wrongPin,
+	custAccNum: payload.custAccNum
+}]]]></db:input-parameters>
+								</db:update>
+										<ee:transform doc:name="Transform Message" doc:id="83535ebb-80e3-486e-87ec-d892fd879d26">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"You Entered Wrong Pin. Login Attempt Failed: Remaining Attempts " ++ (3 - vars.wrongPin as Number)
+]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+										<logger level="INFO" doc:name="Logger" doc:id="34a186a7-c5e7-4d40-8dcd-0456f9e95e67" message="before sending email to user"/>
+										<email:send doc:name="Send" doc:id="03c974e8-75d0-49df-8925-a6e84627a712" fromAddress="govtbank24hours@gmail.com" subject='#["Warning Message From Bank"]' config-ref="Email_SMTP">
+											<email:to-addresses >
+												<email:to-address value="#[vars.mail]" />
+											</email:to-addresses>
+										</email:send>
+										<logger level="INFO" doc:name="Logger1" doc:id="a5e001a7-d337-4646-9272-38826b803998" />
+									</otherwise>
+								</choice>
+							</otherwise>
+						</choice>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="cf92f286-dfcc-4614-b327-36f1a5417f09" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"Account "++ vars.inputPayload.accountNum ++ " temporarily blocked. Please visit nearest Branch"]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="0fc2e7c2-2a67-49d0-9db5-7c2c89de6193">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+"Account " ++ vars.inputPayload.accountNum ++ " does not exist...! Enter Valid 
+Details "]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

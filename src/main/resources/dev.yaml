@@ -1,0 +1,13 @@
+#databaseCredetials
+db:
+  host: "database-1.c6tleeitdrnq.us-east-1.rds.amazonaws.com"
+  port: "3306"
+  database: "BHARATHI_DB"
+  user: "admin"
+  password: "9390095446"
+  
+#twillioCredetials  
+tw:
+  sid: "AC86db3f7657791dcb5d7d977556ae0aec"
+  token: "455b4e5111a54e2d1562f70817a7b83e"
+  phone: "+12059557420"

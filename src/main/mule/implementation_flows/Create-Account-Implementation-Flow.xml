@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:twilio="http://www.mulesoft.org/schema/mule/twilio"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/twilio http://www.mulesoft.org/schema/mule/twilio/current/mule-twilio.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="Create-Account-Implementation-FlowFlow" doc:id="da0e3277-c4b5-4014-bf43-0dbff5929c81" >
+		<db:select doc:name="Select is to check Data is present or not" doc:id="99a32134-8f74-42be-9fcd-fcfd40d22a62" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from BHARATHI_DB.Bank_Transactions where custAccNum=:custAccNum]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	custAccNum: vars.inputPayload.accountNum
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="56b032a2-760a-47dc-bd6c-6d4467e5588a" >
+			<when expression="#[sizeOf(payload)==0]">
+				<ee:transform doc:name="Mapping input data to DATABASE" doc:id="08ec56b7-0381-44cd-b8c5-4b2bb06b0e9a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	custName: vars.customerName,
+	custAccNum: vars.inputPayload.accountNum,
+	atmPin: vars.inputPayload.atmPin,
+	bankName: vars.bank,
+	accountType: vars.accountType,
+	ifscCode: vars.inputPayload.ifscCode,
+	branchName: vars.branchName,
+	totalBalance: vars.inputPayload.depositeAmount,
+	transactionTimeStamp: now() as DateTime,
+	accountStatus: "Active",
+	wrongPin: 0,
+	mailId: vars.inputPayload.mail,
+	phoneNumber: vars.inputPayload.contact
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="confirmation" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "Confirmation": "Your Bank BankAccount Successfully Created !----THANK YOU----!",
+    "CustomerName": vars.customerName,
+    "AccountNumber": vars.inputPayload.accountNum,
+    "AccountType": vars.accountType,
+    "Branch": vars.branchName
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="04257ffe-e319-48d8-9665-0093f54b7fbb" message='#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: "Customer Registration",&#10;	Category:"Customer",&#10;	OriginatingApplication: "SystemAPI",&#10;	DesinationApplication: "Database",&#10;	CustomerId: "NA",&#10;	txnState:"Database",&#10;	"State":"Befor inserting the customer data into Bank_transactions table"&#10;}]'/>
+				<db:insert doc:name="Insert to Bank_transactions table" doc:id="7a5b69d7-f52e-4e9e-8229-31d0edda62fe" config-ref="Database_Config">
+					<db:sql><![CDATA[insert into BHARATHI_DB.Bank_Transactions(custName,custAccNum,atmPin,bankName,accountType,ifscCode,branchName,totalBalance,transactionTimeStamp,accountStatus,wrongPin,mailId,phoneNumber)
+values(:custName,:custAccNum,:atmPin,:bankName,:accountType,:ifscCode,:branchName,:totalBalance,:transactionTimeStamp,:accountStatus,:wrongPin,:mailId,:phoneNumber)]]></db:sql>
+					<db:input-parameters><![CDATA[#[payload]]]></db:input-parameters>
+				</db:insert>
+				<logger level="INFO" doc:name="Logger" doc:id="b4f90aea-e87d-4655-be48-6baa0113a599" message='#[%dw 2.0&#10;output application/json indent = false&#10;---&#10;{&#10;	TimeStamp: now(),&#10;	AppName: app.name,&#10;	FlowName: flow.name,&#10;	BusinessProcessName: "Customer Registration",&#10;	Category:"Customer",&#10;	OriginatingApplication: "SystemAPI",&#10;	DesinationApplication: "Database",&#10;	CustomerId: "NA",&#10;	txnState:"Database",&#10;	"State":"Successfully inserting the customer data into Bank_transactions table"&#10;}]' />
+				<!-- <twilio:create20100401-accounts-messagesjson-by-account-sid doc:name="To send Confirmation Message to AccountHolder" doc:id="83d24d2e-97fc-4cc8-8250-c60f9d3cce1e" config-ref="Twilio_Connector_Config" accountSid="AC86db3f7657791dcb5d7d977556ae0aec"/> -->
+				<ee:transform doc:name="Transform Message" doc:id="47daa415-c194-4103-9d1c-4655f54da377">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"Dear Customer......" ++
+"\nCongratulations! You have successfully created a bank account\n\nYour Account Holder Name: " ++ (vars.customerName default "") ++
+"\nAccount Number: " ++ (vars.inputPayload.accountNum default "") ++
+"\nBank: " ++ (vars.bank default "") ++
+"\nBranch: " ++ (vars.branchName default "")
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<email:send doc:name="Send" doc:id="0a00bda8-fc0d-4087-9d4e-be1cf3f535e4" fromAddress="govtbank24hours@gmail.com" subject='#["WELCOME MESSAGE-Bank Account Successfull Creation"]' config-ref="Email_SMTP">
+					<email:to-addresses >
+						<email:to-address value="#[vars.inputPayload.mail]" />
+					</email:to-addresses>
+					<email:cc-addresses />
+				</email:send>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message for Customer already exists" doc:id="c6e2830c-dad7-4161-bef7-29c4af3dff00" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message":  "Account Number "++ vars.inputPayload.accountNum ++ "already exist "
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<error-handler ref="Global-Error-HandlerError_Handler" />
+	</flow>
+</mule>
